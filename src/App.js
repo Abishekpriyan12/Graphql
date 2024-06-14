@@ -1,6 +1,6 @@
 import { VStack, Text } from "@chakra-ui/react";
 import "./App.css";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import AddTodo from "./components/AddTodo";
 import TodoList from "./components/TodoList";
 import { ApolloClient, InMemoryCache, ApolloProvider, gql } from '@apollo/client';
@@ -10,31 +10,40 @@ const client = new ApolloClient({
   cache: new InMemoryCache(),
 });
 
-client
-  .query({
-    query: gql`
-    query ExampleQuery {
-      getAllTodos {
-        id
-        task
-        isCompleted
-      }
-    }
-    `,
-  })
-  .then((result) => console.log(`result from graphql - ${JSON.stringify(result)}` ));
-
 function App() {
-  const todosList = [
+  const initialTodosList = [
     { id: 1, text: "Buy eggs" },
     { id: 2, text: "Walk the dog" },
     { id: 3, text: "Watch a movie" },
   ];
 
-  const [todos, setTodos] = useState(todosList);
+  const [todos, setTodos] = useState(initialTodosList);
+
+  useEffect(() => {
+    client
+      .query({
+        query: gql`
+          query ExampleQuery {
+            getAllTodos {
+              id
+              task
+              isCompleted
+            }
+          }
+        `,
+      })
+      .then((result) => {
+        console.log(`result from graphql - ${JSON.stringify(result.data.getAllTodos)}`);
+        const fetchedTodos = result.data.getAllTodos.map(todo => ({
+          id: todo.id,
+          text: todo.task,
+          isCompleted: todo.isCompleted,
+        }));
+        setTodos(prevTodos => [...prevTodos, ...fetchedTodos]);
+      });
+  }, []);
 
   function deleteTodo(id) {
-    // IMPLEMENT DELETE TODO
     const updatedTodoList = todos.filter((todo) => {
       return todo.id !== id;
     });
@@ -44,16 +53,12 @@ function App() {
   function addTodo(newTodo) {
     const updatedTodoList = [...todos, newTodo];
     setTodos(updatedTodoList);
-    debugger;
-    // IMPLEMENT ADD TODOS
   }
 
   function editTodo(id, updatedTodo) {
-    // IMPLEMENT EDIT TODO
     const updatedTodoList = todos.map((todo) => {
       return todo.id === id ? updatedTodo : todo;
     });
-    debugger;
     setTodos(updatedTodoList);
   }
 
